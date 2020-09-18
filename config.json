@@ -1,0 +1,16 @@
+{
+    "environment": {
+        "production": false,
+        "development": true
+    },
+    "port": 8080,
+    "neo4j": {
+        "host": 7687,
+        "password": "azerty",
+        "bdd": "neo4j"
+    },
+    "security": {
+        "tokenKey": "EvaHugot",
+        "unsecure": false
+    }
+}

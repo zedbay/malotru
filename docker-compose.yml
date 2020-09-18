@@ -1,0 +1,13 @@
+version: "3"
+services:
+  express:
+    image: node:latest
+    working_dir: /usr/src/app
+    ports:
+      - "8080:8080"
+    expose:
+      - "8080"
+    volumes:
+      - .:/usr/src/app
+    command: bash -c "npm i && npm run dev"
+
