@@ -21,7 +21,7 @@ export class UserRoutes {
 
     private static mountPrivateRoute(router: Router) {
         router.get('/whoami', checkJwt, UserHandler.whoami);
-        router.get('/user/friendList', checkJwt, FriendshipHandler.getFriendList);
+        router.get('/user/friendList', checkJwt, FriendshipHandler.getFriendListRequest);
         router.delete('/user/:userId', checkJwt, UserHandler.deleteUserHandler);
     }
 

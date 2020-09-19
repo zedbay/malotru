@@ -1,5 +1,4 @@
 import { User, UserOrm } from "../models/user";
-import { UserRoutes } from "../routes/user.routes";
 import { getIdentity, Identity } from "../security/security.util";
 import { fieldsArePresent } from "../utils/test";
 

@@ -1,8 +1,10 @@
 import { Observable } from "rxjs";
 import { map } from "rxjs/operators";
 import { Link, OrientationLink, TargetLink } from "../models/link";
-import { formatLinkCreation } from "../utils/formate";
+import { formateToMalotruResponse, formatLinkCreation } from "../utils/formate";
 import { Malotru } from "../malotru";
+import { QueryResult } from "neo4j-driver";
+import { MalotruRessource } from "../models/ressource";
 
 export class LinkFactory {
 
@@ -29,7 +31,7 @@ export class LinkFactory {
             .pipe(map((res) => formatLinkCreation(res)));
     }
 
-    public listLinkTarget(itemsId: number, linkLabel: string, orientation: OrientationLink = OrientationLink.Neutre) {
+    public listLinkTarget(itemsId: number, linkLabel: string, orientation: OrientationLink = OrientationLink.Neutre): Observable<MalotruRessource[]> {
         const request = `
                 MATCH
                     (s:${this.sourceLabel})${orientation === OrientationLink.ToSource ? '<' : ''}-[:${linkLabel}]-${orientation === OrientationLink.ToTarget ? '>' : ''}(l)
@@ -38,10 +40,12 @@ export class LinkFactory {
                 RETURN
                     l  
             `;
-        return this.malotruInstance.execute(request);
+        return this.malotruInstance
+            .execute(request)
+            .pipe((map((res: QueryResult) => formateToMalotruResponse(res).ressources)));
     }
 
-    public deleteLink(itemsId: number, linkLabel: string, target: TargetLink, orientation: OrientationLink = OrientationLink.Neutre) {
+    public deleteLink(itemsId: number, linkLabel: string, target: TargetLink, orientation: OrientationLink = OrientationLink.Neutre): Observable<void> {
         const request = `
                 MATCH
                     (s:${this.sourceLabel})-[l:${linkLabel}]${orientation === OrientationLink.ToSource ? '<' : ''}-${orientation === OrientationLink.ToTarget ? '>' : ''}(t:${target.label})

@@ -47,7 +47,7 @@ export class Malotru {
 
 export abstract class MalotruObject<T extends MalotruRessource> extends RessourceCrud<T> {
 
-    public linkFactory: LinkFactory;
+    protected linkFactory: LinkFactory;
 
     constructor(
         protected label: string,
