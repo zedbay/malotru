@@ -4,7 +4,7 @@ import { MalotruRessource } from "../orm/models/ressource";
 import { Malotru, MalotruObject } from "../orm/malotru";
 import { getNeo4jInstance } from "../app";
 
-export interface User extends MalotruRessource {
+export class User extends MalotruRessource {
     firstName?: string;
     lastName?: string;
     password?: string;

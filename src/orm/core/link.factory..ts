@@ -1,8 +1,6 @@
 import { Observable } from "rxjs";
 import { map } from "rxjs/operators";
-import { Link } from "../models/link";
-import { Orientation } from "../models/orientation";
-import { Target } from "../models/target";
+import { Link, OrientationLink, TargetLink } from "../models/link";
 import { formatLinkCreation } from "../utils/formate";
 import { Malotru } from "../malotru";
 
@@ -13,42 +11,42 @@ export class LinkFactory {
         public sourceLabel: string
     ) { }
 
-    public createLink(itemId: number, linkLabel: string, target: Target, orientation: Orientation = Orientation.Neutre): Observable<Link> {
+    public createLink(itemId: number, linkLabel: string, target: TargetLink, orientation: OrientationLink): Observable<Link> {
         const request = `
                 MATCH 
-                    (u:${this.sourceLabel}),
+                    (s:${this.sourceLabel}),
                     (t:${target.label})
                 WHERE 
-                    ID(u)=${itemId} AND
+                    ID(s)=${itemId} AND
                     ID(t)=${target.id}
                 CREATE
-                    (u)${orientation === Orientation.ToSource ? '<' : ''}-[:${linkLabel}]-${orientation === Orientation.ToTarget ? '>' : ''}(t)
+                    (s)${orientation === OrientationLink.ToSource ? '<' : ''}-[:${linkLabel}]-${orientation === OrientationLink.ToTarget ? '>' : ''}(t)
                 RETURN
-                    u, t
+                    s, t
             `;
         return this.malotruInstance
             .execute(request)
             .pipe(map((res) => formatLinkCreation(res)));
     }
 
-    public listLinkTarget(itemsId: number, linkLabel: string, orientation: Orientation = Orientation.Neutre) {
+    public listLinkTarget(itemsId: number, linkLabel: string, orientation: OrientationLink = OrientationLink.Neutre) {
         const request = `
                 MATCH
-                    (u:${this.sourceLabel})${orientation === Orientation.ToSource ? '<' : ''}-[:${linkLabel}]-${orientation === Orientation.ToTarget ? '>' : ''}(l)
+                    (s:${this.sourceLabel})${orientation === OrientationLink.ToSource ? '<' : ''}-[:${linkLabel}]-${orientation === OrientationLink.ToTarget ? '>' : ''}(l)
                 WHERE
-                    ID(u)=${itemsId}
+                    ID(s)=${itemsId}
                 RETURN
                     l  
             `;
         return this.malotruInstance.execute(request);
     }
 
-    public deleteLink(itemsId: number, linkLabel: string, target: Target, orientation: Orientation = Orientation.Neutre) {
+    public deleteLink(itemsId: number, linkLabel: string, target: TargetLink, orientation: OrientationLink = OrientationLink.Neutre) {
         const request = `
                 MATCH
-                    (u:${this.sourceLabel})-[l:${linkLabel}]${orientation === Orientation.ToSource ? '<' : ''}-${orientation === Orientation.ToTarget ? '>' : ''}(t:${target.label})
+                    (s:${this.sourceLabel})-[l:${linkLabel}]${orientation === OrientationLink.ToSource ? '<' : ''}-${orientation === OrientationLink.ToTarget ? '>' : ''}(t:${target.label})
                 WHERE
-                    ID(u)=${itemsId} AND
+                    ID(s)=${itemsId} AND
                     ID(t)=${target.id}
                 DETACH DELETE 
                     l

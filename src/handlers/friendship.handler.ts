@@ -1,12 +1,11 @@
 import { request } from "express";
 import { Observable } from "rxjs";
 import { User, UserLabel, UserOrm, UserRelation } from "../models/user";
-import { Orientation } from "../orm/models/orientation";
-import { Target } from "../orm/models/target";
 import { getIdentity, Identity } from "../security/security.util";
 import { fieldsArePresent } from "../utils/test";
 import { concatMap } from 'rxjs/operators';
 import { from } from 'rxjs';
+import { OrientationLink, TargetLink } from "../orm/models/link";
 
 export class FriendshipHandler {
 
@@ -15,7 +14,8 @@ export class FriendshipHandler {
         UserOrm().linkFactory.createLink(
             identity.id,
             UserRelation.FriendRequest,
-            { label: UserLabel, id: req.params.userTargetId }
+            { label: UserLabel, id: req.params.userTargetId },
+            OrientationLink.ToTarget
         ).subscribe((response) => {
             return res.status(200).json(response);
         });
@@ -26,7 +26,7 @@ export class FriendshipHandler {
             return res.status(404).json({ error: 'some fields are missing' });
         }
         const identity: Identity = getIdentity(req.headers["authorization"]);
-        const target: Target = {
+        const target: TargetLink = {
             label: UserLabel,
             id: req.params.userTargetId
         };
@@ -39,7 +39,8 @@ export class FriendshipHandler {
             UserOrm().linkFactory.createLink(
                 identity.id,
                 UserRelation.Friend,
-                target
+                target,
+                OrientationLink.ToTarget
             )
         ]
         from(requests).pipe(
@@ -55,7 +56,7 @@ export class FriendshipHandler {
         UserOrm().linkFactory.listLinkTarget(
             identity.id,
             UserRelation.FriendRequest,
-            Orientation.ToSource
+            OrientationLink.ToSource
         ).subscribe((users: User[]) => {
             return res.status(200).json({ users });
         });

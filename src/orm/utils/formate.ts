@@ -1,36 +1,31 @@
+import { QueryResult, Record } from "neo4j-driver";
 import { Link } from "../models/link";
+import { MalotruResponse } from "../models/malotruresponse";
+import { MalotruRessource } from "../models/ressource";
 
-export function formatOneElement(neo4jResponse) {
-    if (neo4jResponse.records.length === 0) {
-        return { error: 'no entity with this id' };
-    }
-    return getRessourceFromRecord(neo4jResponse.records[0]._fields[0]);
-}
-
-export function formatMultipleElements(neo4jResponse) {
-    if (neo4jResponse.records.lenght === 0) {
-        return [];
-    }
-    const elements = [];
-    neo4jResponse.records.forEach(element => {
-        elements.push(getRessourceFromRecord(element._fields[0]));
-    });
-    return elements;
-}
-
-export function formatLinkCreation(neo4jResponse): Link {
-    if (neo4jResponse.records.lenght < 1) {
-        return { error: 'One element not found' };
-    }
+export function formateToMalotruResponse<T extends MalotruRessource>(response: QueryResult): MalotruResponse<T> {
+    const records: Record[] = response.records;
     return {
-        source: getRessourceFromRecord(neo4jResponse.records[0]._fields[0]),
-        target: getRessourceFromRecord(neo4jResponse.records[0]._fields[1])
+        ressources: records.map((record: Record) => {
+            return getRessourceFromRecord<T>(record, record.keys[0])
+        })
     };
 }
 
-function getRessourceFromRecord(record) {
+export function formatLinkCreation(response: QueryResult): Link {
+    const record: Record = response.records[0];
     return {
-        id: record.identity.low,
-        ...record.properties
-    }
+        source: getRessourceFromRecord(record, record.keys[0]),
+        target: getRessourceFromRecord(record, record.keys[1])
+    };
 }
+
+function getRessourceFromRecord<T extends MalotruRessource>(record: Record, key: string): T {
+    const recordObject: Object = record.toObject();
+    return {
+        id: recordObject[key].identity.low,
+        ...recordObject[key].properties
+    } as T;
+}
+
+

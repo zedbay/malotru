@@ -1,5 +1,17 @@
+import { MalotruRessource } from "./ressource";
+
 export interface Link {
-    source?: any;
-    target?: any;
-    error?: string;
+    source: MalotruRessource;
+    target: MalotruRessource;
+}
+
+export interface TargetLink {
+    id: number;
+    label: string;
+}
+
+export enum OrientationLink {
+    ToTarget,
+    ToSource,
+    Neutre
 }

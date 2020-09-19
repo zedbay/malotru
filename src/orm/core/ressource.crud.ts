@@ -3,8 +3,9 @@ import { map } from "rxjs/operators";
 import { MalotruRessource } from "../models/ressource";
 import { Search } from "../models/search";
 import { creationOfElementRequest, searchElementRequest, updateOfelementRequest } from "../utils/buildRequest";
-import { formatMultipleElements, formatOneElement } from "../utils/formate";
+import { formateToMalotruResponse } from "../utils/formate";
 import { Malotru } from "../malotru";
+import { QueryResult } from "neo4j-driver";
 
 export abstract class RessourceCrud<T extends MalotruRessource> {
 
@@ -17,7 +18,9 @@ export abstract class RessourceCrud<T extends MalotruRessource> {
         const request = searchElementRequest(searchs, this.label);
         return this.malotruInstance
             .execute(request)
-            .pipe(map((res) => formatMultipleElements(res)));
+            .pipe(map((res) =>
+                formateToMalotruResponse<T>(res).ressources
+            ));
     }
 
     public list(): Observable<T[]> {
@@ -26,21 +29,27 @@ export abstract class RessourceCrud<T extends MalotruRessource> {
         `;
         return this.malotruInstance
             .execute(request)
-            .pipe(map((res) => formatMultipleElements(res)));
+            .pipe(map((res) =>
+                formateToMalotruResponse<T>(res).ressources
+            ));
     }
 
     public update(item: T): Observable<T> {
         const request = updateOfelementRequest(this.label, item);
         return this.malotruInstance
             .execute(request)
-            .pipe(map((res) => formatOneElement(res)));
+            .pipe(map((res) =>
+                formateToMalotruResponse<T>(res).ressources[0]
+            ));
     }
 
     public create(item: T): Observable<T> {
         const request = creationOfElementRequest(this.label, item);
         return this.malotruInstance
             .execute(request)
-            .pipe(map((res) => formatOneElement(res)));
+            .pipe(map((res) =>
+                formateToMalotruResponse<T>(res).ressources[0]
+            ));
     }
 
     public read(itemId: number): Observable<T> {
@@ -49,7 +58,9 @@ export abstract class RessourceCrud<T extends MalotruRessource> {
         `;
         return this.malotruInstance
             .execute(request)
-            .pipe(map((res) => formatOneElement(res)));
+            .pipe(map((res: QueryResult) =>
+                formateToMalotruResponse<T>(res).ressources[0]
+            ));
     }
 
     public delete(itemId: number): Observable<void> {
