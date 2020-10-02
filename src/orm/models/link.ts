@@ -5,11 +5,6 @@ export interface Link {
     target: MalotruRessource;
 }
 
-export interface TargetLink {
-    id: number;
-    label: string;
-}
-
 export enum OrientationLink {
     ToTarget,
     ToSource,

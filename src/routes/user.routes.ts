@@ -14,15 +14,24 @@ export class UserRoutes {
 
     private static mountPublicRoutes(router: Router) {
         router.post('/user', UserHandler.createUserHandler);
+        router.get('/user/feed/:userId', UserHandler.getUserFeedHandler);
         router.get('/user/:userId', UserHandler.readUserHandler);
         router.put('/user', UserHandler.updateUserHandler);
         router.get('/user', UserHandler.listUserHandler);
+
     }
 
     private static mountPrivateRoute(router: Router) {
         router.get('/whoami', checkJwt, UserHandler.whoami);
         router.get('/user/friendList', checkJwt, FriendshipHandler.getFriendListRequest);
         router.delete('/user/:userId', checkJwt, UserHandler.deleteUserHandler);
+        router.post('/user/comment/:postId', checkJwt, UserHandler.comment);
+        router.delete('/user/comment/:commentId', checkJwt, UserHandler.deleteCommentHandler);
+
+        // POST
+        router.delete('/user/post/:postId', checkJwt, UserHandler.deletePostHandler);
+        router.put('/user/like/:postId', checkJwt, UserHandler.likePost);
+        router.post('/user/post/:feedId', checkJwt, UserHandler.post);
     }
 
 

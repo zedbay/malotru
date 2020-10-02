@@ -19,8 +19,7 @@ export class FriendshipHandler {
         const identity: Identity = getIdentity(req.headers["authorization"]);
         UserOrm().handleFriendRequest(identity.id, req.params.userTargetId, req.body.response).subscribe(() => {
             return res.status(200).json();
-        })
-
+        });
     }
 
     public static getFriendRequest(req: any, res: any) {

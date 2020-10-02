@@ -1,3 +1,3 @@
-export abstract class MalotruRessource {
+export interface MalotruRessource {
     id?: number;
 }

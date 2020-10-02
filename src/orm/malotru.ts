@@ -2,24 +2,25 @@ import neo4j, { Driver, Session, QueryResult } from 'neo4j-driver';
 import { Observable, Subscriber } from 'rxjs';
 import { LinkFactory } from './core/link.factory.';
 import { RessourceCrud } from "./core/ressource.crud";
+import { SearchFactory } from './core/search.factory';
 import { MalotruRessource } from "./models/ressource";
 
 export class Malotru {
 
     constructor(
-        protected driver: Driver, protected session: Session
+        protected driver: Driver
     ) { }
 
     public static initMalotru(url: string, bddName: string, password: string): Observable<Malotru> {
         return new Observable((observer: Subscriber<Malotru>) => {
             const driver: Driver = neo4j.driver(
                 url,
-                neo4j.auth.basic(bddName, password)
+                neo4j.auth.basic(bddName, password),
+                { disableLosslessIntegers: true }
             );
             driver.verifyConnectivity()
                 .then(() => {
-                    const session: Session = driver.session();
-                    const malotruInstance = new Malotru(driver, session);
+                    const malotruInstance = new Malotru(driver);
                     observer.next(malotruInstance);
                     observer.complete();
                 })
@@ -31,11 +32,20 @@ export class Malotru {
     }
 
     public execute(request: string): Observable<any> {
-        return new Observable((observer: Subscriber<any>) => {
-            this.session.run(request).then((res: QueryResult) => {
-                observer.next(res);
-                observer.complete();
-            });
+        const session: Session = this.driver.session();
+        return new Observable((observer: Subscriber<QueryResult>) => {
+            session.run(request)
+                .then((res: QueryResult) => {
+                    observer.next(res);
+                    observer.complete();
+                })
+                .catch((err) => {
+                    observer.error(err);
+                    observer.complete();
+                })
+                .then(() => {
+                    session.close();
+                });
         });
     }
 
@@ -48,6 +58,7 @@ export class Malotru {
 export abstract class MalotruObject<T extends MalotruRessource> extends RessourceCrud<T> {
 
     protected linkFactory: LinkFactory;
+    public searchFactory: SearchFactory;
 
     constructor(
         protected label: string,
@@ -58,6 +69,7 @@ export abstract class MalotruObject<T extends MalotruRessource> extends Ressourc
             malotruInstance
         );
         this.linkFactory = new LinkFactory(malotruInstance, label);
+        this.searchFactory = new SearchFactory(malotruInstance, label);
     }
 
 }

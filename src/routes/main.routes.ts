@@ -1,6 +1,8 @@
 import { Router, Express } from "express";
 import { loginHandler } from "../security/login.handler";
 import { FriendshipRouter } from "./friendship.routes";
+import { GroupRouter } from "./group.routes";
+import { PostRouter } from "./post.routes";
 import { UserRoutes } from "./user.routes";
 
 export class MainRouter {
@@ -14,6 +16,8 @@ export class MainRouter {
         express.use("/", router);
         UserRoutes.init(express);
         FriendshipRouter.init(express);
+        GroupRouter.init(express);
+        PostRouter.init(express);
     }
 
 }

@@ -1,70 +1,109 @@
-import { from, Observable } from "rxjs";
-import { concatMap, map } from "rxjs/operators";
+import { forkJoin, Observable, Subscriber } from "rxjs";
+import { map } from "rxjs/operators";
 import { MalotruRessource } from "../orm/models/ressource";
 import { Malotru, MalotruObject } from "../orm/malotru";
 import { getNeo4jInstance } from "../app";
-import { Link, OrientationLink, TargetLink } from "../orm/models/link";
+import { Link, OrientationLink } from "../orm/models/link";
+import { Feed, FeedOrm } from "./feed";
+import { FeedRelation, UserRelation } from "./constants/malotru.relation";
+import { MalotruLabels } from "./constants/malotru.label";
+import { TargetRessource } from "../orm/models/search";
 
-export class User extends MalotruRessource {
+export interface User extends MalotruRessource {
     firstName?: string;
     lastName?: string;
     password?: string;
     email?: string;
+    feed?: Feed;
+    creationDate?: string;
 }
-
-export enum UserRelation {
-    Friend = 'FRIEND',
-    FriendRequest = 'FRIENDREQUEST'
-}
-
-export const UserLabel = 'User';
 
 class UserRessource extends MalotruObject<User> {
 
+
     constructor(public malotruInstance: Malotru) {
-        super(UserLabel, malotruInstance);
+        super(
+            MalotruLabels.User,
+            malotruInstance
+        );
     }
 
     public static initUserOrm(): UserRessource {
         return new UserRessource(getNeo4jInstance());
     }
 
+    public create(user: User): Observable<User> {
+        return new Observable((observer: Subscriber<User>) => {
+            user.creationDate = (new Date()).toString();
+            super.create(user).subscribe((createdUser: User) => {
+                FeedOrm().createFeed(
+                    `${createdUser.email}_${createdUser.id}`,
+                    { id: createdUser.id, label: this.label }
+                ).subscribe((feed: Feed) => {
+                    createdUser.feed = feed;
+                    observer.next(createdUser);
+                    observer.complete();
+                });
+            });
+        });
+    }
+
+    public read(userId: number): Observable<User> {
+        return forkJoin({
+            user: super.read(userId),
+            feed: this.searchFactory.searchNodeByLink(
+                { id: userId, label: this.label },
+                MalotruLabels.Feed,
+                FeedRelation.Feed
+            )
+        }).pipe(map((res) => {
+            return {
+                ...res.user,
+                feed: res.feed
+            }
+        }));
+    }
+
     public handleFriendRequest(userId: number, userTargetId: number, response: boolean) {
-        const target: TargetLink = {
+        const target: TargetRessource = {
             label: this.label,
             id: userTargetId
         };
-        const requests: Observable<any>[] = [
+        let requests: Observable<any>[] = [
             UserOrm().linkFactory.deleteLink(
                 userId,
                 UserRelation.FriendRequest,
                 target
-            ),
-            UserOrm().linkFactory.createLink(
+            )
+        ]
+        if (response) {
+            requests.push(UserOrm().linkFactory.createLink(
                 userId,
                 UserRelation.Friend,
                 target,
                 OrientationLink.ToTarget
-            )
-        ]
-        return from(requests).pipe(
-            concatMap(request => request)
-        );
+            ));
+        }
+        return forkJoin(requests);
     }
 
     public getFriendList(userId: number) {
-        return this.linkFactory.listLinkTarget(
+        return this.searchFactory.searchRatachedNodesByLink(
             userId,
             UserRelation.Friend
         );
     }
 
     public getFriendRequest(userId: number) {
-        return this.linkFactory.listLinkTarget(
+        return this.searchFactory.searchRatachedNodesByLink(
             userId,
             UserRelation.FriendRequest,
             OrientationLink.ToSource
         );
+    }
+
+    public getUserFeed(userId: number): Observable<Feed> {
+        return FeedOrm().readFeedByTarget({ id: userId, label: this.label });
     }
 
     public createFriendship(userId: number, userTargetId: number): Observable<Link> {
@@ -73,34 +112,24 @@ class UserRessource extends MalotruObject<User> {
             UserRelation.FriendRequest,
             { label: this.label, id: userTargetId },
             OrientationLink.ToTarget
-        )
+        );
     }
 
     public checkIfUserExist(email: string, password: string): Observable<User> {
         return this
-            .search([
+            .searchFactory.search([
                 { fieldName: 'email', value: email },
                 { fieldName: 'password', value: password }
             ])
-            .pipe(map((res) => {
-                if (res.length === 0) {
-                    return undefined;
-                }
-                return res[0];
-            }));
+            .pipe(map((res) => res.length === 0 ? undefined : res[0]));
     }
 
     public checkIdEmailIsAlreadyRegister(email: string): Observable<boolean> {
         return this
-            .search([
+            .searchFactory.search([
                 { fieldName: 'email', value: email }
             ])
-            .pipe(map((res) => {
-                if (res.length === 0) {
-                    return false;
-                }
-                return true;
-            }));
+            .pipe(map((res) => res.length === 0 ? false : true));
     }
 
 
