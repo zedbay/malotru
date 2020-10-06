@@ -4,7 +4,7 @@ import { Link, OrientationLink } from "../models/link";
 import { formatLink } from "../utils/formate";
 import { Malotru } from "../malotru";
 import { TargetRessource } from "../models/search";
-import { _main, _target } from "../constants/malotru.consts";
+import { _ignored, _main, _target } from "../constants/malotru.consts";
 
 export class LinkFactory {
 
@@ -22,7 +22,7 @@ export class LinkFactory {
                     ID(${_main})=${itemId} AND
                     ID(${_target})=${target.id}
                 CREATE
-                    (${_main})${orientation === OrientationLink.ToSource ? '<' : ''}-[:${linkLabel}]-${orientation === OrientationLink.ToTarget ? '>' : ''}(${_target})
+                    (${_main})${this.buildOrientedLink(linkLabel, orientation)}(${_target})
                 RETURN
                     ${_main}, ${_target}
             `;
@@ -31,7 +31,7 @@ export class LinkFactory {
             .pipe(map((res) => formatLink(res)));
     }
 
-    public checkIfLinkExist(targetSource: TargetRessource, targetCible: TargetRessource, linkLabel: string): Observable<Link> {
+    public checkIfLinkExist(targetSource: TargetRessource, targetCible: TargetRessource, linkLabel: string, orientation: OrientationLink = OrientationLink.Neutre): Observable<Link> {
         const request = `
             MATCH
                 (${_main}:${targetSource.label}),
@@ -39,7 +39,7 @@ export class LinkFactory {
             WHERE
                 ID(${_main})=${targetSource.id} AND
                 ID(${_target})=${targetCible.id} AND
-                (${_main})-[:${linkLabel}]-(${_target})
+                (${_main})${this.buildOrientedLink(linkLabel, orientation)}(${_target})
             RETURN
                 ${_main}, ${_target}
         `;
@@ -49,30 +49,40 @@ export class LinkFactory {
     }
 
     public deleteLink(itemsId: number, linkLabel: string, target: TargetRessource, orientation: OrientationLink = OrientationLink.Neutre): Observable<void> {
+        const nameOfLinkToDelete = 'to_delete';
         const request = `
                 MATCH
-                    (s:${this.sourceLabel})-[l:${linkLabel}]${orientation === OrientationLink.ToSource ? '<' : ''}-${orientation === OrientationLink.ToTarget ? '>' : ''}(t:${target.label})
+                    (${_main}:${this.sourceLabel})
+                    ${this.buildOrientedLink(linkLabel, orientation, nameOfLinkToDelete)}
+                    (${_target}:${target.label})
                 WHERE
-                    ID(s)=${itemsId} AND
-                    ID(t)=${target.id}
+                    ID(${_main})=${itemsId} AND
+                    ID(${_target})=${target.id}
                 DETACH DELETE 
-                    l
+                    ${nameOfLinkToDelete}
             `;
         return this.malotruInstance.execute(request);
     }
 
-    public deleteNodeByLinkRelation(targetLabel: string, source: TargetRessource, linkLabel: string): Observable<void> {
+    public deleteNodeByLinkRelation(targetLabel: string, source: TargetRessource, linkLabel: string, orientation: OrientationLink = OrientationLink.Neutre): Observable<void> {
         const request = `
             MATCH
                 (${_main}:${targetLabel}),
-                (t:${source.label})
+                (${_target}:${source.label})
             WHERE
-                ID(t)=${source.id} AND
-                (${_main})-[:${linkLabel}]-(t)
+                ID(${_target})=${source.id} AND
+                (${_main})${this.buildOrientedLink(linkLabel, orientation)}(${_target})
             DETACH DELETE
                 ${_main}
         `;
         return this.malotruInstance.execute(request);
+    }
+
+    private buildOrientedLink(linkLabel: string, orientation: OrientationLink, returnName = ''): string {
+        let requestElement = `${orientation === OrientationLink.ToSource ? '<' : ''}-`;
+        requestElement += `[${returnName}:${linkLabel}]`;
+        requestElement += `-${orientation === OrientationLink.ToTarget ? '>' : ''}`;
+        return requestElement;
     }
 
 }
