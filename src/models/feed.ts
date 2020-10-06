@@ -1,5 +1,4 @@
-import { forkJoin, Observable, Subscriber } from "rxjs";
-import { map } from "rxjs/operators";
+import { Observable, Subscriber } from "rxjs";
 import { getNeo4jInstance } from "../app";
 import { Malotru, MalotruObject } from "../orm/malotru";
 import { OrientationLink } from "../orm/models/link";
@@ -29,24 +28,11 @@ class FeedObject extends MalotruObject<Feed> {
         return new FeedObject(getNeo4jInstance());
     }
 
-    public read(feedId: number): Observable<Feed> {
-        return forkJoin({
-            feed: super.read(feedId),
-            posts: this.getPostByFeedId(feedId)
-        }).pipe(map((res) => {
-            return {
-                ...res.feed,
-                posts: res.posts
-            }
-        }));
-    }
-
     public readFeedByTarget(target: TargetRessource): Observable<Feed> {
         return new Observable((observer: Subscriber<Feed>) => {
             this.searchFactory.searchNodeByLink(
-                { id: target.id, label: target.label },
-                this.label,
-                FeedRelation.Feed
+                target,
+                { label: this.label, linkLabel: FeedRelation.Feed }
             ).subscribe((feed: Feed) => {
                 this.getPostByFeedId(feed.id).subscribe((posts: Post[]) => {
                     observer.next({
@@ -76,9 +62,13 @@ class FeedObject extends MalotruObject<Feed> {
     }
 
     private getPostByFeedId(feedId: number): Observable<Post[]> {
-        return this.searchFactory.searchRatachedNodesByLink(
-            feedId,
-            PostRelation.In
+        return this.searchFactory.searchNodesAndLinkedNodesByTarget(
+            { id: feedId, label: this.label },
+            { label: MalotruLabels.Post, linkLabel: PostRelation.In, returnName: 'Posts' },
+            [
+                { linkLabel: PostRelation.Publish, label: MalotruLabels.User, returnName: 'owner' },
+                { linkLabel: PostRelation.Like, label: MalotruLabels.User, returnName: 'usersLike' }
+            ]
         );
     }
 

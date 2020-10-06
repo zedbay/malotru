@@ -1,12 +1,13 @@
 import { QueryResult } from "neo4j-driver";
 import { Observable } from "rxjs";
 import { map } from "rxjs/operators";
+import { _ignored, _main } from "../constants/malotru.consts";
 import { Malotru } from "../malotru";
 import { OrientationLink } from "../models/link";
 import { MalotruRessource } from "../models/ressource";
 import { Search, TargetByLink, TargetRessource } from "../models/search";
 import { searchElementRequest } from "../utils/buildRequest";
-import { formateToMalotruResponse } from "../utils/formate";
+import { formatRecords } from "../utils/formate";
 
 export class SearchFactory {
 
@@ -20,34 +21,50 @@ export class SearchFactory {
         return this.malotruInstance
             .execute(request)
             .pipe(map((res) =>
-                formateToMalotruResponse<T>(res).ressources
+                formatRecords<T>(res)
             ));
     }
 
-    public unknowName(
+    public searchNodesAndLinkedNodesByTarget(
+        mainTarget: TargetRessource,
+        directNode: TargetByLink,
+        targetsByLink: TargetByLink[]
+    ) {
+        let request = `
+            MATCH 
+                (${_ignored}:${mainTarget.label}), 
+                (${_main}:${directNode.label}) 
+            WHERE 
+                ID(${_ignored})=${mainTarget.id}
+                AND (${_ignored})-[:${directNode.linkLabel}]-(${_main})
+        `;
+        targetsByLink.forEach((target: TargetByLink) => (
+            request += ` OPTIONAL MATCH (${target.returnName}:${target.label})-[:${target.linkLabel}]-(${_main}) `
+        ));
+        request += ` RETURN ${_main} `;
+        targetsByLink.forEach((target: TargetByLink) => {
+            request += `, collect(distinct ${target.returnName}) as ${target.returnName}`
+        });
+        return this.malotruInstance
+            .execute(request)
+            .pipe(map((res) => formatRecords(res)));
+    }
+
+    public searchTargetAndLinkedNodes<T extends MalotruRessource>(
         mainTarget: TargetRessource,
         targetsByLink: TargetByLink[]
     ) {
-        let request = `MATCH (s:${mainTarget.label})`;
-        targetsByLink.forEach((targetByLink: TargetByLink) => {
-            request += `, (${targetByLink.returnName}:${targetByLink.label})`
+        let request = `MATCH (${_main}:${mainTarget.label}) WHERE ID(${_main})=${mainTarget.id} `;
+        targetsByLink.forEach((target: TargetByLink) => {
+            request += ` OPTIONAL MATCH (${target.returnName}:${target.label})-[:${target.linkLabel}]-(${_main}) `
         });
-        request += ` WHERE ID(s)=${mainTarget.id}`;
-        targetsByLink.forEach((targetsByLink: TargetByLink) => {
-            request += ` AND (s)-[:${targetsByLink.linkLabel}]-(${targetsByLink.returnName})`
-        });
-        request += ` RETURN s`;
-        targetsByLink.forEach((targetsByLink: TargetByLink) => {
-            request += `, ${targetsByLink.returnName}`
+        request += `RETURN ${_main} `;
+        targetsByLink.forEach((target: TargetByLink) => {
+            request += `, collect(distinct ${target.returnName}) as ${target.returnName}`
         });
         return this.malotruInstance
-            .execute(request);
-        console.log(request);
-        //     WHERE 
-        //         ID(s)=${mainTarget.id}
-        //     RETURN
-        //         s
-        // `;
+            .execute(request)
+            .pipe(map((res) => formatRecords(res)[0] as T));
     }
 
     public searchRatachedNodesByLink(
@@ -56,35 +73,35 @@ export class SearchFactory {
         orientation: OrientationLink = OrientationLink.Neutre): Observable<MalotruRessource[]> {
         const request = `
             MATCH
-                (s:${this.sourceLabel})
+                (${_ignored}:${this.sourceLabel})
                     ${orientation === OrientationLink.ToSource ? '<' : ''}-
                     [:${linkLabel}]
                     -${orientation === OrientationLink.ToTarget ? '>' : ''}
-                (l)
+                (${_main})
             WHERE
-                ID(s)=${itemsId}
+                ID(${_ignored})=${itemsId}
             RETURN
-                l  
+                ${_main}  
         `;
         return this.malotruInstance
             .execute(request)
-            .pipe((map((res: QueryResult) => formateToMalotruResponse(res).ressources)));
+            .pipe((map((res: QueryResult) => formatRecords(res))));
     }
 
-    public searchNodeByLink(target: TargetRessource, nodeLabel: string, linkLabel: string): Observable<MalotruRessource> {
+    public searchNodeByLink(ressource: TargetRessource, target: TargetByLink): Observable<MalotruRessource> {
         const request = `
             MATCH
-                (s:${nodeLabel}),
-                (t:${target.label})
+                (${_ignored}:${ressource.label}),
+                (${_main}:${target.label})
             WHERE
-                ID(t)=${target.id} AND
-                (s)-[:${linkLabel}]-(t)
+                ID(${_ignored})=${ressource.id} AND
+                (${_main})-[:${target.linkLabel}]-(${_ignored})
             RETURN 
-                s, t
+                ${_main}
         `;
         return this.malotruInstance
             .execute(request)
-            .pipe((map((res: QueryResult) => formateToMalotruResponse(res).ressources[0])));
+            .pipe((map((res: QueryResult) => formatRecords(res)[0])));
     }
 
 }

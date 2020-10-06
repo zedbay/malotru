@@ -11,5 +11,5 @@ export interface TargetRessource {
 export interface TargetByLink {
     label: string;
     linkLabel: string;
-    returnName: string;
+    returnName?: string;
 }

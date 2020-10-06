@@ -7,11 +7,13 @@ import { MalotruRessource } from "../orm/models/ressource";
 import { CommentRessource } from "./comment";
 import { MalotruLabels } from "./constants/malotru.label";
 import { PostRelation } from "./constants/malotru.relation";
+import { User } from "./user";
 
 export interface Post extends MalotruRessource {
     content?: string;
     creationDate?: string;
-    usersLike?: number;
+    usersLike?: User[];
+    owner?: User;
 }
 
 class PostObject extends MalotruObject<Post> {

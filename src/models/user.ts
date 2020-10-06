@@ -5,9 +5,10 @@ import { Malotru, MalotruObject } from "../orm/malotru";
 import { getNeo4jInstance } from "../app";
 import { Link, OrientationLink } from "../orm/models/link";
 import { Feed, FeedOrm } from "./feed";
-import { FeedRelation, UserRelation } from "./constants/malotru.relation";
+import { GroupRelation, UserRelation } from "./constants/malotru.relation";
 import { MalotruLabels } from "./constants/malotru.label";
 import { TargetRessource } from "../orm/models/search";
+import { Group } from "./group";
 
 export interface User extends MalotruRessource {
     firstName?: string;
@@ -16,6 +17,8 @@ export interface User extends MalotruRessource {
     email?: string;
     feed?: Feed;
     creationDate?: string;
+    friends?: User[];
+    memberOfGroups?: Group[];
 }
 
 class UserRessource extends MalotruObject<User> {
@@ -32,6 +35,16 @@ class UserRessource extends MalotruObject<User> {
         return new UserRessource(getNeo4jInstance());
     }
 
+    public read(userId: number): Observable<User> {
+        return this.searchFactory.searchTargetAndLinkedNodes(
+            { label: this.label, id: userId },
+            [
+                { label: this.label, linkLabel: UserRelation.Friend, returnName: 'friends' },
+                { label: MalotruLabels.Group, linkLabel: GroupRelation.Members, returnName: 'memberOfGroups' }
+            ]
+        );
+    }
+
     public create(user: User): Observable<User> {
         return new Observable((observer: Subscriber<User>) => {
             user.creationDate = (new Date()).toString();
@@ -46,22 +59,6 @@ class UserRessource extends MalotruObject<User> {
                 });
             });
         });
-    }
-
-    public read(userId: number): Observable<User> {
-        return forkJoin({
-            user: super.read(userId),
-            feed: this.searchFactory.searchNodeByLink(
-                { id: userId, label: this.label },
-                MalotruLabels.Feed,
-                FeedRelation.Feed
-            )
-        }).pipe(map((res) => {
-            return {
-                ...res.user,
-                feed: res.feed
-            }
-        }));
     }
 
     public handleFriendRequest(userId: number, userTargetId: number, response: boolean) {

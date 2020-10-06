@@ -17,7 +17,6 @@ export class GroupRouter {
 
     public static mountPublicRoutes(router: Router) {
         router.get('/group', GroupHandler.listGroupHandler);
-        router.get('/group/members/:groupId', GroupHandler.getGroupMembersHandler);
         router.put('/group/join/:groupId', checkJwt, GroupHandler.joinGroupHandler);
         router.get('/group/:groupId', GroupHandler.getGroupHandler);
         router.get('/group/feed/:groupId', GroupHandler.getFeedHandler);

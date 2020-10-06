@@ -1,11 +1,11 @@
 import { Observable, Subscriber } from "rxjs";
 import { map } from "rxjs/operators";
 import { MalotruRessource } from "../models/ressource";
-import { Search } from "../models/search";
-import { creationOfElementRequest, searchElementRequest, updateOfelementRequest } from "../utils/buildRequest";
-import { formateToMalotruResponse } from "../utils/formate";
+import { creationOfElementRequest, updateOfelementRequest } from "../utils/buildRequest";
+import { formatRecords } from "../utils/formate";
 import { Malotru } from "../malotru";
 import { QueryResult } from "neo4j-driver";
+import { _main } from "../constants/malotru.consts";
 
 export class RessourceCrud<T extends MalotruRessource> {
 
@@ -16,12 +16,12 @@ export class RessourceCrud<T extends MalotruRessource> {
 
     public list(): Observable<T[]> {
         const request = `
-            MATCH (u:${this.label}) RETURN u
+            MATCH (${_main}:${this.label}) RETURN ${_main}
         `;
         return this.malotruInstance
             .execute(request)
             .pipe(map((res) =>
-                formateToMalotruResponse<T>(res).ressources
+                formatRecords<T>(res)
             ));
     }
 
@@ -30,7 +30,7 @@ export class RessourceCrud<T extends MalotruRessource> {
         return this.malotruInstance
             .execute(request)
             .pipe(map((res) =>
-                formateToMalotruResponse<T>(res).ressources[0]
+                formatRecords<T>(res)[0]
             ));
     }
 
@@ -39,18 +39,18 @@ export class RessourceCrud<T extends MalotruRessource> {
         return this.malotruInstance
             .execute(request)
             .pipe(map((res) =>
-                formateToMalotruResponse<T>(res).ressources[0]
+                formatRecords<T>(res)[0]
             ));
     }
 
     public read(itemId: number): Observable<T> {
         const request = `
-            MATCH (u:${this.label}) WHERE ID(u)=${itemId} RETURN u
+            MATCH (${_main}:${this.label}) WHERE ID(${_main})=${itemId} RETURN ${_main}
         `;
         return this.malotruInstance
             .execute(request)
             .pipe(map((res: QueryResult) =>
-                formateToMalotruResponse<T>(res).ressources[0]
+                formatRecords<T>(res)[0]
             ));
     }
 
@@ -58,10 +58,10 @@ export class RessourceCrud<T extends MalotruRessource> {
         return new Observable((observer: Subscriber<boolean>) => {
             const request = `
                 MATCH 
-                    (u:${this.label}) 
+                    (${_main}:${this.label}) 
                 WHERE 
-                    ID(u)=${itemId} 
-                DETACH DELETE u RETURN u`;
+                    ID(${_main})=${itemId} 
+                DETACH DELETE ${_main} RETURN ${_main}`;
             this.malotruInstance
                 .execute(request)
                 .subscribe(

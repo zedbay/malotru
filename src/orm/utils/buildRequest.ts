@@ -1,7 +1,8 @@
+import { _main } from "../constants/malotru.consts";
 import { Search } from "../models/search";
 
 export function creationOfElementRequest(label: string, item): string {
-    let request = `CREATE (u:${label} {`;
+    let request = `CREATE (${_main}:${label} {`;
     const keys = Object.keys(item);
     keys.forEach((key: string) => {
         switch (typeof item[key]) {
@@ -19,12 +20,12 @@ export function creationOfElementRequest(label: string, item): string {
         }
     });
     request = request.slice(0, -1);
-    request += '}) RETURN u';
+    request += `}) RETURN ${_main}`;
     return request;
 }
 
 export function searchElementRequest(searchs: Search[], label: string): string {
-    let request = `MATCH (u:${label} {`;
+    let request = `MATCH (${_main}:${label} {`;
     searchs.forEach((search: Search) => {
         switch (typeof search.value) {
             case 'string':
@@ -41,12 +42,12 @@ export function searchElementRequest(searchs: Search[], label: string): string {
         }
     });
     request = request.slice(0, -1);
-    request += '}) RETURN u';
+    request += `}) RETURN ${_main}`;
     return request;
 }
 
 export function updateOfelementRequest(label: string, item): string {
-    let request = `MATCH (u:${label}) WHERE ID(u)=${item.id} SET `;
+    let request = `MATCH (${_main}:${label}) WHERE ID(${_main})=${item.id} SET `;
     const keys = Object.keys(item);
     keys.forEach((key: string) => {
         if (key === 'id') { return; }
@@ -65,6 +66,6 @@ export function updateOfelementRequest(label: string, item): string {
         }
     });
     request = request.slice(0, -1);
-    request += ' RETURN u';
+    request += ` RETURN ${_main}`;
     return request;
 }

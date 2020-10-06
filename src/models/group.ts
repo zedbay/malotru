@@ -4,10 +4,9 @@ import { Malotru, MalotruObject } from "../orm/malotru";
 import { Link, OrientationLink } from "../orm/models/link";
 import { MalotruRessource } from "../orm/models/ressource";
 import { Feed, FeedOrm } from "./feed";
-import { GroupRelation, UserRelation } from "./constants/malotru.relation";
+import { GroupRelation } from "./constants/malotru.relation";
 import { User } from "./user";
 import { MalotruLabels } from "./constants/malotru.label";
-import { unknowFormat } from "../orm/utils/formate";
 
 export interface Group extends MalotruRessource {
     name: string;
@@ -30,27 +29,17 @@ class GroupRessource extends MalotruObject<Group> {
     }
 
     public read(groupId: number): Observable<Group> {
-        this.searchFactory.unknowName(
+        return this.searchFactory.searchTargetAndLinkedNodes<Group>(
             { label: this.label, id: groupId },
             [
                 { label: MalotruLabels.User, linkLabel: GroupRelation.Owner, returnName: 'owner' },
                 { label: MalotruLabels.User, linkLabel: GroupRelation.Members, returnName: 'members' }
             ]
-        ).subscribe((res) => {
-            unknowFormat(res);
-        });
-        return super.read(groupId);
+        );
     }
 
     public getFeed(groupId: number): Observable<Feed> {
         return FeedOrm().readFeedByTarget({ id: groupId, label: this.label });
-    }
-
-    public getMembers(groupId: number): Observable<User[]> {
-        return this.searchFactory.searchRatachedNodesByLink(
-            groupId,
-            GroupRelation.Members
-        );
     }
 
     public setMember(groupId: number, userId: number): Observable<Link> {
