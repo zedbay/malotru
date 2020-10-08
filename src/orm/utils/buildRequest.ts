@@ -1,4 +1,5 @@
 import { _main } from "../constants/malotru.consts";
+import { OrientationLink } from "../models/link";
 import { Search } from "../models/search";
 
 export function creationOfElementRequest(label: string, item): string {
@@ -22,6 +23,13 @@ export function creationOfElementRequest(label: string, item): string {
     request = request.slice(0, -1);
     request += `}) RETURN ${_main}`;
     return request;
+}
+
+export function buildOrientedLink(linkLabel: string, orientation: OrientationLink, returnName = ''): string {
+    let requestElement = `${orientation === OrientationLink.ToSource ? '<' : ''}-`;
+    requestElement += `[${returnName}:${linkLabel}]`;
+    requestElement += `-${orientation === OrientationLink.ToTarget ? '>' : ''}`;
+    return requestElement;
 }
 
 export function searchElementRequest(searchs: Search[], label: string): string {

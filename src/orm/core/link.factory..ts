@@ -5,6 +5,7 @@ import { formatLink } from "../utils/formate";
 import { Malotru } from "../malotru";
 import { TargetRessource } from "../models/search";
 import { _ignored, _main, _target } from "../constants/malotru.consts";
+import { buildOrientedLink } from "../utils/buildRequest";
 
 export class LinkFactory {
 
@@ -22,7 +23,7 @@ export class LinkFactory {
                     ID(${_main})=${itemId} AND
                     ID(${_target})=${target.id}
                 CREATE
-                    (${_main})${this.buildOrientedLink(linkLabel, orientation)}(${_target})
+                    (${_main})${buildOrientedLink(linkLabel, orientation)}(${_target})
                 RETURN
                     ${_main}, ${_target}
             `;
@@ -39,7 +40,7 @@ export class LinkFactory {
             WHERE
                 ID(${_main})=${targetSource.id} AND
                 ID(${_target})=${targetCible.id} AND
-                (${_main})${this.buildOrientedLink(linkLabel, orientation)}(${_target})
+                (${_main})${buildOrientedLink(linkLabel, orientation)}(${_target})
             RETURN
                 ${_main}, ${_target}
         `;
@@ -53,7 +54,7 @@ export class LinkFactory {
         const request = `
                 MATCH
                     (${_main}:${this.sourceLabel})
-                    ${this.buildOrientedLink(linkLabel, orientation, nameOfLinkToDelete)}
+                    ${buildOrientedLink(linkLabel, orientation, nameOfLinkToDelete)}
                     (${_target}:${target.label})
                 WHERE
                     ID(${_main})=${itemsId} AND
@@ -71,18 +72,11 @@ export class LinkFactory {
                 (${_target}:${source.label})
             WHERE
                 ID(${_target})=${source.id} AND
-                (${_main})${this.buildOrientedLink(linkLabel, orientation)}(${_target})
+                (${_main})${buildOrientedLink(linkLabel, orientation)}(${_target})
             DETACH DELETE
                 ${_main}
         `;
         return this.malotruInstance.execute(request);
-    }
-
-    private buildOrientedLink(linkLabel: string, orientation: OrientationLink, returnName = ''): string {
-        let requestElement = `${orientation === OrientationLink.ToSource ? '<' : ''}-`;
-        requestElement += `[${returnName}:${linkLabel}]`;
-        requestElement += `-${orientation === OrientationLink.ToTarget ? '>' : ''}`;
-        return requestElement;
     }
 
 }
