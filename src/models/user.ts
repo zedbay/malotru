@@ -1,7 +1,7 @@
 import { forkJoin, Observable, Subscriber } from "rxjs";
 import { map } from "rxjs/operators";
 import { MalotruRessource } from "../orm/models/ressource";
-import { Malotru, MalotruObject } from "../orm/malotru";
+import { Malotru } from "../orm/malotru";
 import { getNeo4jInstance } from "../app";
 import { Link, OrientationLink } from "../orm/models/link";
 import { Feed, FeedOrm } from "./feed";
@@ -9,6 +9,7 @@ import { GroupRelation, UserRelation } from "./constants/malotru.relation";
 import { MalotruLabels } from "./constants/malotru.label";
 import { TargetRessource } from "../orm/models/search";
 import { Group } from "./group";
+import { request } from "express";
 
 export interface User extends MalotruRessource {
     firstName?: string;
@@ -19,15 +20,20 @@ export interface User extends MalotruRessource {
     creationDate?: string;
     friends?: User[];
     memberOfGroups?: Group[];
+    friendRequests?: User[];
 }
 
-class UserRessource extends MalotruObject<User> {
+class UserRessource extends Malotru.malotruObject<User> {
 
 
     constructor(public malotruInstance: Malotru) {
         super(
             MalotruLabels.User,
-            malotruInstance
+            malotruInstance,
+            [
+                UserRelation.FriendRequest,
+                UserRelation.Friend
+            ]
         );
     }
 
@@ -67,33 +73,33 @@ class UserRessource extends MalotruObject<User> {
             id: userTargetId
         };
         let requests: Observable<any>[] = [
-            UserOrm().linkFactory.deleteLink(
+            this.links[UserRelation.FriendRequest].deleteLink(
                 userId,
-                UserRelation.FriendRequest,
                 target
             )
         ]
         if (response) {
-            requests.push(UserOrm().linkFactory.createLink(
-                userId,
-                UserRelation.Friend,
-                target,
-                OrientationLink.ToTarget
-            ));
+            request.push(
+                this.links[UserRelation.FriendRequest].createLink(
+                    userId,
+                    target,
+                    OrientationLink.ToTarget
+                )
+            )
         }
         return forkJoin(requests);
     }
 
     public getFriendList(userId: number) {
         return this.searchFactory.searchRatachedNodesByLink(
-            userId,
+            { id: userId, label: this.label },
             UserRelation.Friend
         );
     }
 
     public getFriendRequest(userId: number) {
         return this.searchFactory.searchRatachedNodesByLink(
-            userId,
+            { id: userId, label: this.label },
             UserRelation.FriendRequest,
             OrientationLink.ToSource
         );
@@ -104,9 +110,8 @@ class UserRessource extends MalotruObject<User> {
     }
 
     public createFriendship(userId: number, userTargetId: number): Observable<Link> {
-        return this.linkFactory.createLink(
+        return this.links[UserRelation.Friend].createLink(
             userId,
-            UserRelation.FriendRequest,
             { label: this.label, id: userTargetId },
             OrientationLink.ToTarget
         );
@@ -117,7 +122,7 @@ class UserRessource extends MalotruObject<User> {
             .searchFactory.search([
                 { fieldName: 'email', value: email },
                 { fieldName: 'password', value: password }
-            ])
+            ], this.label)
             .pipe(map((res) => res.length === 0 ? undefined : res[0]));
     }
 
@@ -125,7 +130,7 @@ class UserRessource extends MalotruObject<User> {
         return this
             .searchFactory.search([
                 { fieldName: 'email', value: email }
-            ])
+            ], this.label)
             .pipe(map((res) => res.length === 0 ? false : true));
     }
 

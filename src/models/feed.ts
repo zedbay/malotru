@@ -1,6 +1,6 @@
 import { Observable, Subscriber } from "rxjs";
 import { getNeo4jInstance } from "../app";
-import { Malotru, MalotruObject } from "../orm/malotru";
+import { Malotru } from "../orm/malotru";
 import { OrientationLink } from "../orm/models/link";
 import { MalotruRessource } from "../orm/models/ressource";
 import { TargetRessource } from "../orm/models/search";
@@ -13,14 +13,17 @@ export interface Feed extends MalotruRessource {
     posts?: Post[];
 }
 
-class FeedObject extends MalotruObject<Feed> {
+class FeedObject extends Malotru.malotruObject<Feed> {
 
     constructor(
         public malotruInstance: Malotru
     ) {
         super(
             MalotruLabels.Feed,
-            malotruInstance
+            malotruInstance,
+            [
+                FeedRelation.Feed
+            ]
         )
     }
 
@@ -48,9 +51,8 @@ class FeedObject extends MalotruObject<Feed> {
     public createFeed(name: string, target: TargetRessource): Observable<Feed> {
         return new Observable((observer: Subscriber<Feed>) => {
             this.create({ name }).subscribe((createdFeed: Feed) => {
-                this.linkFactory.createLink(
+                this.links[FeedRelation.Feed].createLink(
                     createdFeed.id,
-                    FeedRelation.Feed,
                     target,
                     OrientationLink.ToTarget
                 ).subscribe(() => {

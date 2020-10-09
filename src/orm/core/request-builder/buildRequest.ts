@@ -1,6 +1,6 @@
-import { _main } from "../constants/malotru.consts";
-import { OrientationLink } from "../models/link";
-import { Search } from "../models/search";
+import { _main } from "../../constants/malotru.consts";
+import { OrientationLink } from "../../models/link";
+import { Search } from "../../models/search";
 
 export function creationOfElementRequest(label: string, item): string {
     let request = `CREATE (${_main}:${label} {`;

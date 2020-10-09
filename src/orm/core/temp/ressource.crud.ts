@@ -1,11 +1,21 @@
 import { Observable, Subscriber } from "rxjs";
 import { map } from "rxjs/operators";
-import { MalotruRessource } from "../models/ressource";
-import { creationOfElementRequest, updateOfelementRequest } from "../utils/buildRequest";
-import { formatRecords } from "../utils/formate";
-import { Malotru } from "../malotru";
+import { MalotruRessource } from "../../models/ressource";
+import { creationOfElementRequest, updateOfelementRequest } from "../request-builder/buildRequest";
+import { formatRecords } from "../../utils/formate";
+import { Malotru } from "../../malotru";
 import { QueryResult } from "neo4j-driver";
-import { _main } from "../constants/malotru.consts";
+import { _main } from "../../constants/malotru.consts";
+
+
+export interface CrudI<T extends MalotruRessource> {
+    list: () => Observable<T[]>;
+    update: (item: T) => Observable<T>;
+    create: (item: T) => Observable<T>;
+    read: (itemId: number) => Observable<T>;
+    delete: (itemId: number) => Observable<boolean>;
+}
+
 
 export class RessourceCrud<T extends MalotruRessource> {
 

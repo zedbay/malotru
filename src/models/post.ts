@@ -1,7 +1,7 @@
 import { forkJoin, observable, Observable, Subscriber } from "rxjs";
 import { map } from "rxjs/operators";
 import { getNeo4jInstance } from "../app";
-import { Malotru, MalotruObject } from "../orm/malotru";
+import { Malotru } from "../orm/malotru";
 import { OrientationLink } from "../orm/models/link";
 import { MalotruRessource } from "../orm/models/ressource";
 import { CommentRessource } from "./comment";
@@ -16,14 +16,19 @@ export interface Post extends MalotruRessource {
     owner?: User;
 }
 
-class PostObject extends MalotruObject<Post> {
+class PostObject extends Malotru.malotruObject<Post> {
 
     constructor(
         malotruInstance: Malotru
     ) {
         super(
             MalotruLabels.Post,
-            malotruInstance
+            malotruInstance,
+            [
+                PostRelation.Publish,
+                PostRelation.Like,
+                PostRelation.In
+            ]
         );
     }
 
@@ -36,15 +41,13 @@ class PostObject extends MalotruObject<Post> {
             post.creationDate = (new Date()).toString();
             super.create(post).subscribe((createdPost: Post) => {
                 forkJoin({
-                    linkBetweenPostAndFeed: this.linkFactory.createLink(
+                    linkBetweenPostAndFeed: this.links[PostRelation.In].createLink(
                         createdPost.id,
-                        PostRelation.In,
                         { id: feedId, label: MalotruLabels.Feed },
                         OrientationLink.ToTarget
                     ),
-                    linkBetweenUserAndPost: this.linkFactory.createLink(
+                    linkBetweenUserAndPost: this.links[PostRelation.Publish].createLink(
                         createdPost.id,
-                        PostRelation.Publish,
                         { id: userId, label: MalotruLabels.User },
                         OrientationLink.ToSource
                     )
@@ -58,7 +61,7 @@ class PostObject extends MalotruObject<Post> {
 
     public getCommentsInPost(postId: number): Observable<CommentRessource[]> {
         return this.searchFactory.searchRatachedNodesByLink(
-            postId,
+            { id: postId, label: this.label },
             PostRelation.In
         );
     }
@@ -67,18 +70,16 @@ class PostObject extends MalotruObject<Post> {
         return new Observable((observer: Subscriber<boolean>) => {
             this.checkIfUserLikePost(userId, postId).subscribe((exist: boolean) => {
                 if (exist) {
-                    this.linkFactory.deleteLink(
+                    this.links[PostRelation.Like].deleteLink(
                         postId,
-                        PostRelation.Like,
                         { id: userId, label: MalotruLabels.User }
                     ).subscribe(() => {
                         observer.next(!exist);
                         observer.complete();
                     });
                 } else {
-                    this.linkFactory.createLink(
+                    this.links[PostRelation.Like].createLink(
                         postId,
-                        PostRelation.Like,
                         { id: userId, label: MalotruLabels.User },
                         OrientationLink.ToSource
                     ).subscribe(() => {
@@ -92,10 +93,11 @@ class PostObject extends MalotruObject<Post> {
 
     public delete(postId: number): Observable<boolean> {
         return new Observable((observer: Subscriber<boolean>) => {
-            this.linkFactory.deleteNodeByLinkRelation(
-                MalotruLabels.Comment,
-                { id: postId, label: MalotruLabels.Post },
-                PostRelation.In
+
+
+            this.links[PostRelation.In].deleteRatachedNodes(
+                postId,
+                MalotruLabels.Comment
             ).subscribe(() => {
                 super.delete(postId).subscribe((isDeleted: boolean) => {
                     observer.next(isDeleted);
@@ -106,7 +108,7 @@ class PostObject extends MalotruObject<Post> {
     }
 
     public userIsOwnerOfPost(userId: number, postId: number): Observable<boolean> {
-        return this.linkFactory
+        return this.searchFactory
             .checkIfLinkExist(
                 { id: userId, label: MalotruLabels.User },
                 { id: postId, label: this.label },
@@ -118,7 +120,7 @@ class PostObject extends MalotruObject<Post> {
     }
 
     private checkIfUserLikePost(userId: number, postId: number): Observable<boolean> {
-        return this.linkFactory.checkIfLinkExist(
+        return this.searchFactory.checkIfLinkExist(
             { id: userId, label: MalotruLabels.User },
             { id: postId, label: MalotruLabels.Post },
             PostRelation.Like

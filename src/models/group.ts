@@ -1,6 +1,6 @@
 import { forkJoin, Observable, Subscriber } from "rxjs";
 import { getNeo4jInstance } from "../app";
-import { Malotru, MalotruObject } from "../orm/malotru";
+import { Malotru } from "../orm/malotru";
 import { Link, OrientationLink } from "../orm/models/link";
 import { MalotruRessource } from "../orm/models/ressource";
 import { Feed, FeedOrm } from "./feed";
@@ -15,12 +15,16 @@ export interface Group extends MalotruRessource {
     membres?: User[];
 }
 
-class GroupRessource extends MalotruObject<Group> {
+class GroupRessource extends Malotru.malotruObject<Group> {
 
     constructor(public malotruInstance: Malotru) {
         super(
             MalotruLabels.Group,
-            malotruInstance
+            malotruInstance,
+            [
+                GroupRelation.Members,
+                GroupRelation.Owner
+            ]
         );
     }
 
@@ -43,29 +47,27 @@ class GroupRessource extends MalotruObject<Group> {
     }
 
     public setMember(groupId: number, userId: number): Observable<Link> {
-        return this.linkFactory.createLink(
+        return this.links[GroupRelation.Members].createLink(
             groupId,
-            GroupRelation.Members,
             { label: MalotruLabels.User, id: userId },
             OrientationLink.ToSource
-        );
+        )
     }
 
     public setOwner(groupId: number, userId: number): Observable<Link> {
-        return this.linkFactory.createLink(
+        return this.links[GroupRelation.Owner].createLink(
             groupId,
-            GroupRelation.Owner,
             { label: MalotruLabels.User, id: userId },
             OrientationLink.ToTarget
-        );
+        )
     }
 
     public createGroup(group: Group, userId: number): Observable<Group> {
         return new Observable((observer: Subscriber<Group>) => {
             super.create(group).subscribe((createdGroup: Group) => {
                 const requests: Observable<any>[] = [
-                    GroupOrm().setOwner(createdGroup.id, userId),
-                    GroupOrm().setMember(createdGroup.id, userId),
+                    this.setOwner(createdGroup.id, userId),
+                    this.setMember(createdGroup.id, userId),
                     FeedOrm().createFeed(
                         `${createdGroup.name}_${createdGroup.id}`,
                         { id: createdGroup.id, label: this.label }

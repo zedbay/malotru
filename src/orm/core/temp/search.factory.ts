@@ -1,23 +1,22 @@
 import { QueryResult } from "neo4j-driver";
 import { Observable } from "rxjs";
 import { map } from "rxjs/operators";
-import { _ignored, _main } from "../constants/malotru.consts";
-import { Malotru } from "../malotru";
-import { OrientationLink } from "../models/link";
-import { MalotruRessource } from "../models/ressource";
-import { Search, TargetByLink, TargetRessource } from "../models/search";
-import { searchElementRequest } from "../utils/buildRequest";
-import { formatRecords } from "../utils/formate";
+import { _ignored, _main, _target } from "../../constants/malotru.consts";
+import { Malotru } from "../../malotru";
+import { Link, OrientationLink } from "../../models/link";
+import { MalotruRessource } from "../../models/ressource";
+import { Search, TargetByLink, TargetRessource } from "../../models/search";
+import { buildOrientedLink, searchElementRequest } from "../request-builder/buildRequest";
+import { formatLink, formatRecords } from "../../utils/formate";
 
 export class SearchFactory {
 
     constructor(
-        public malotruInstance: Malotru,
-        public sourceLabel: string
+        public malotruInstance: Malotru
     ) { }
 
-    public search<T extends MalotruRessource>(searchs: Search[]): Observable<T[]> {
-        const request = searchElementRequest(searchs, this.sourceLabel);
+    public search<T extends MalotruRessource>(searchs: Search[], sourceLabel: string): Observable<T[]> {
+        const request = searchElementRequest(searchs, sourceLabel);
         return this.malotruInstance
             .execute(request)
             .pipe(map((res) =>
@@ -68,18 +67,18 @@ export class SearchFactory {
     }
 
     public searchRatachedNodesByLink(
-        itemsId: number,
+        targetSource: TargetRessource,
         linkLabel: string,
         orientation: OrientationLink = OrientationLink.Neutre): Observable<MalotruRessource[]> {
         const request = `
             MATCH
-                (${_ignored}:${this.sourceLabel})
+                (${_ignored}:${targetSource.label})
                     ${orientation === OrientationLink.ToSource ? '<' : ''}-
                     [:${linkLabel}]
                     -${orientation === OrientationLink.ToTarget ? '>' : ''}
                 (${_main})
             WHERE
-                ID(${_ignored})=${itemsId}
+                ID(${_ignored})=${targetSource.id}
             RETURN
                 ${_main}  
         `;
@@ -102,6 +101,23 @@ export class SearchFactory {
         return this.malotruInstance
             .execute(request)
             .pipe((map((res: QueryResult) => formatRecords(res)[0])));
+    }
+
+    public checkIfLinkExist(targetSource: TargetRessource, targetCible: TargetRessource, linkLabel: string, orientation: OrientationLink = OrientationLink.Neutre): Observable<Link> {
+        const request = `
+            MATCH
+                (${_main}:${targetSource.label}),
+                (${_target}:${targetCible.label})
+            WHERE
+                ID(${_main})=${targetSource.id} AND
+                ID(${_target})=${targetCible.id} AND
+                (${_main})${buildOrientedLink(linkLabel, orientation)}(${_target})
+            RETURN
+                ${_main}, ${_target}
+        `;
+        return this.malotruInstance
+            .execute(request)
+            .pipe(map((res) => formatLink(res)));
     }
 
 }

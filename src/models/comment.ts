@@ -1,7 +1,7 @@
 import { forkJoin, Observable, Subscriber } from "rxjs";
 import { map } from "rxjs/operators";
 import { getNeo4jInstance } from "../app";
-import { Malotru, MalotruObject } from "../orm/malotru";
+import { Malotru } from "../orm/malotru";
 import { OrientationLink } from "../orm/models/link";
 import { MalotruRessource } from "../orm/models/ressource";
 import { MalotruLabels } from "./constants/malotru.label";
@@ -12,14 +12,18 @@ export interface CommentRessource extends MalotruRessource {
     creationDate?: string;
 }
 
-class CommentObject extends MalotruObject<CommentRessource> {
+class CommentObject extends Malotru.malotruObject<CommentRessource> {
 
     constructor(
         malotruInstance: Malotru
     ) {
         super(
             MalotruLabels.Comment,
-            malotruInstance
+            malotruInstance,
+            [
+                CommentRelation.In,
+                CommentRelation.Publish
+            ]
         );
     }
 
@@ -32,15 +36,13 @@ class CommentObject extends MalotruObject<CommentRessource> {
             comment.creationDate = (new Date()).toString();
             super.create(comment).subscribe((createdComment: CommentRessource) => {
                 forkJoin({
-                    linkBetweenCommentAndPost: this.linkFactory.createLink(
+                    linkBetweenCommentAndPost: this.links[CommentRelation.In].createLink(
                         createdComment.id,
-                        CommentRelation.In,
                         { id: postId, label: MalotruLabels.Post },
                         OrientationLink.ToTarget
                     ),
-                    linkBetweenUserAndComment: this.linkFactory.createLink(
+                    linkBetweenUserAndComment: this.links[CommentRelation.Publish].createLink(
                         createdComment.id,
-                        CommentRelation.Publish,
                         { id: userId, label: MalotruLabels.User },
                         OrientationLink.ToSource
                     )
@@ -53,7 +55,7 @@ class CommentObject extends MalotruObject<CommentRessource> {
     }
 
     public userIsOwnerOfComment(userId: number, commentId: number): Observable<boolean> {
-        return this.linkFactory
+        return this.searchFactory
             .checkIfLinkExist(
                 { id: userId, label: MalotruLabels.User },
                 { id: commentId, label: this.label },

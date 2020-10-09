@@ -1,11 +1,10 @@
 import neo4j, { Driver, Session, QueryResult } from 'neo4j-driver';
 import { Observable, Subscriber } from 'rxjs';
-import { LinkFactory } from './core/link.factory.';
-import { RessourceCrud } from "./core/ressource.crud";
-import { SearchFactory } from './core/search.factory';
-import { MalotruRessource } from "./models/ressource";
+import { MalotruObject } from './core/malotru.object';
 
 export class Malotru {
+
+    public static malotruObject = MalotruObject;
 
     constructor(
         protected driver: Driver
@@ -54,23 +53,3 @@ export class Malotru {
     }
 
 }
-
-export abstract class MalotruObject<T extends MalotruRessource> extends RessourceCrud<T> {
-
-    protected linkFactory: LinkFactory;
-    public searchFactory: SearchFactory;
-
-    constructor(
-        protected label: string,
-        protected malotruInstance: Malotru
-    ) {
-        super(
-            label,
-            malotruInstance
-        );
-        this.linkFactory = new LinkFactory(malotruInstance, label);
-        this.searchFactory = new SearchFactory(malotruInstance, label);
-    }
-
-}
-
