@@ -18,7 +18,10 @@ class App {
             if (success) {
                 console.log('Successfully connected to neo4j');
                 this.router = new MainRouter(this.express);
+                this.express.emit('dbConnected');
+
             } else {
+                this.express.emit('dbNotConnected');
                 console.log('Connection to neo4j failed :(');
             }
         });
@@ -56,7 +59,8 @@ class App {
 
 }
 
-const app = new App();
+export const app = new App();
+
 
 app.express.listen(config['port'], () => {
     console.log(`Server running on port ${config['port']}`);
@@ -65,3 +69,4 @@ app.express.listen(config['port'], () => {
 export function getNeo4jInstance(): Malotru {
     return app.bdd;
 }
+

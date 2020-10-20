@@ -16,7 +16,7 @@ export class FriendshipRouter {
     }
 
     private static mountPrivateRoute(router: Router) {
-        router.get('/friendship', checkJwt, FriendshipHandler.getFriendRequest);
+        router.get('/friendshipRequest', checkJwt, FriendshipHandler.getFriendRequest);
         router.post('/friendship/:userTargetId', checkJwt, FriendshipHandler.createFriendshipRequest);
         router.put('/handlefriendship/:userTargetId', checkJwt, FriendshipHandler.handleFriendRequest)
     }

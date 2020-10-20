@@ -11,7 +11,8 @@ export enum CommentRelation {
 
 export enum UserRelation {
     Friend = 'FRIEND',
-    FriendRequest = 'FRIENDREQUEST'
+    FriendRequest = 'FRIENDREQUEST',
+    Like = 'LIKE'
 }
 
 export enum FeedRelation {

@@ -1,7 +1,19 @@
-import { _main, _target } from "../../constants/malotru.consts";
+import { _ignored, _main, _target } from "../../constants/malotru.consts";
 import { OrientationLink } from "../../models/link";
 import { TargetRessource } from "../../models/search";
 import { buildOrientedLink } from "./buildRequest";
+
+export function listRatachedNodesRequest(targetSource: TargetRessource, linkLabel: string, orientation: OrientationLink = OrientationLink.Neutre): string {
+    const request = `
+        MATCH
+            (${_ignored}:${targetSource.label})${buildOrientedLink(linkLabel, orientation)}(${_main})
+        WHERE
+            ID(${_ignored})=${targetSource.id}
+        RETURN
+            ${_main}  
+    `;
+    return request;
+}
 
 export function createLinkRequest(targetSource: TargetRessource, linkLabel: string, target: TargetRessource, orientation: OrientationLink): string {
     const request = `

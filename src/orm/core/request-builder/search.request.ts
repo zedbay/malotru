@@ -15,5 +15,6 @@ export function checkIfLinkExistRequest(targetSource: TargetRessource, targetCib
         RETURN
             ${_main}, ${_target}
     `;
+    console.log(request);
     return request;
 }

@@ -1,3 +1,4 @@
+import { request } from "express";
 import { forkJoin, observable, Observable, Subscriber } from "rxjs";
 import { map } from "rxjs/operators";
 import { getNeo4jInstance } from "../app";
@@ -60,41 +61,21 @@ class PostObject extends Malotru.malotruObject<Post> {
     }
 
     public getCommentsInPost(postId: number): Observable<CommentRessource[]> {
-        return this.searchFactory.searchRatachedNodesByLink(
-            { id: postId, label: this.label },
-            PostRelation.In
+        return this.links[PostRelation.In].listRatachedNodes(
+            postId
         );
     }
 
     public userLike(userId: number, postId: number): Observable<boolean> {
-        return new Observable((observer: Subscriber<boolean>) => {
-            this.checkIfUserLikePost(userId, postId).subscribe((exist: boolean) => {
-                if (exist) {
-                    this.links[PostRelation.Like].deleteLink(
-                        postId,
-                        { id: userId, label: MalotruLabels.User }
-                    ).subscribe(() => {
-                        observer.next(!exist);
-                        observer.complete();
-                    });
-                } else {
-                    this.links[PostRelation.Like].createLink(
-                        postId,
-                        { id: userId, label: MalotruLabels.User },
-                        OrientationLink.ToSource
-                    ).subscribe(() => {
-                        observer.next(!exist);
-                        observer.complete();
-                    });
-                }
-            });
-        })
+        return this.links[PostRelation.Like].switchLink(
+            postId,
+            { id: userId, label: MalotruLabels.User },
+            OrientationLink.ToSource
+        );
     }
 
     public delete(postId: number): Observable<boolean> {
         return new Observable((observer: Subscriber<boolean>) => {
-
-
             this.links[PostRelation.In].deleteRatachedNodes(
                 postId,
                 MalotruLabels.Comment
@@ -108,25 +89,10 @@ class PostObject extends Malotru.malotruObject<Post> {
     }
 
     public userIsOwnerOfPost(userId: number, postId: number): Observable<boolean> {
-        return this.searchFactory
-            .checkIfLinkExist(
-                { id: userId, label: MalotruLabels.User },
-                { id: postId, label: this.label },
-                PostRelation.Publish
-            )
-            .pipe((map((res) => {
-                return res !== undefined;
-            })));
-    }
-
-    private checkIfUserLikePost(userId: number, postId: number): Observable<boolean> {
-        return this.searchFactory.checkIfLinkExist(
-            { id: userId, label: MalotruLabels.User },
-            { id: postId, label: MalotruLabels.Post },
-            PostRelation.Like
-        ).pipe(map((res) => {
-            return res !== undefined;
-        }))
+        return this.links[PostRelation.Publish].checkIfLinkExist(
+            userId,
+            { id: postId, label: this.label }
+        );
     }
 
 

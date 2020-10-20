@@ -2,7 +2,7 @@ import { _main } from "../../constants/malotru.consts"
 import { MalotruRessource } from "../../models/ressource";
 import { creationOfElementRequest, updateOfelementRequest } from "./buildRequest";
 
-export function list(label: string): string {
+export function listRequest(label: string): string {
     const request = `
         MATCH (${_main}:${label}) RETURN ${_main}
     `;

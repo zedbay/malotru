@@ -32,7 +32,8 @@ class UserRessource extends Malotru.malotruObject<User> {
             malotruInstance,
             [
                 UserRelation.FriendRequest,
-                UserRelation.Friend
+                UserRelation.Friend,
+                UserRelation.Like
             ]
         );
     }
@@ -90,19 +91,16 @@ class UserRessource extends Malotru.malotruObject<User> {
         return forkJoin(requests);
     }
 
-    public getFriendList(userId: number) {
-        return this.searchFactory.searchRatachedNodesByLink(
-            { id: userId, label: this.label },
-            UserRelation.Friend
-        );
+    public getFriendRequest(userId: number) {
+        return this.links[UserRelation.FriendRequest].listRatachedNodes(
+            userId, OrientationLink.ToSource
+        )
     }
 
-    public getFriendRequest(userId: number) {
-        return this.searchFactory.searchRatachedNodesByLink(
-            { id: userId, label: this.label },
-            UserRelation.FriendRequest,
-            OrientationLink.ToSource
-        );
+    public getMyFriendRequest(userId: number) {
+        return this.links[UserRelation.FriendRequest].listRatachedNodes(
+            userId, OrientationLink.ToTarget
+        )
     }
 
     public getUserFeed(userId: number): Observable<Feed> {
@@ -110,7 +108,7 @@ class UserRessource extends Malotru.malotruObject<User> {
     }
 
     public createFriendship(userId: number, userTargetId: number): Observable<Link> {
-        return this.links[UserRelation.Friend].createLink(
+        return this.links[UserRelation.FriendRequest].createLink(
             userId,
             { label: this.label, id: userTargetId },
             OrientationLink.ToTarget

@@ -1,5 +1,4 @@
 import { Router, Express } from "express";
-import { FriendshipHandler } from "../handlers/friendship.handler";
 import { UserHandler } from "../handlers/user.handler";
 import { checkJwt } from "../security/checkJwt.middleware";
 
@@ -23,7 +22,6 @@ export class UserRoutes {
 
     private static mountPrivateRoute(router: Router) {
         router.get('/whoami', checkJwt, UserHandler.whoami);
-        router.get('/user/friendList', checkJwt, FriendshipHandler.getFriendListRequest);
         router.delete('/user/:userId', checkJwt, UserHandler.deleteUserHandler);
         router.post('/user/comment/:postId', checkJwt, UserHandler.comment);
         router.delete('/user/comment/:commentId', checkJwt, UserHandler.deleteCommentHandler);

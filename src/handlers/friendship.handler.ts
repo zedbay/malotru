@@ -2,6 +2,7 @@ import { User, UserOrm } from "../models/user";
 import { getIdentity, Identity } from "../security/security.util";
 import { fieldsArePresent } from "../utils/test";
 import { Link } from "../orm/models/link";
+import { forkJoin } from "rxjs";
 
 export class FriendshipHandler {
 
@@ -24,16 +25,12 @@ export class FriendshipHandler {
 
     public static getFriendRequest(req: any, res: any) {
         const identity: Identity = getIdentity(req.headers["authorization"]);
-        UserOrm().getFriendRequest(identity.id).subscribe((users: User[]) => {
-            return res.status(200).json({ users });
-        });
-    }
-
-    public static getFriendListRequest(req: any, res: any) {
-        const identity: Identity = getIdentity(req.headers["authorization"]);
-        UserOrm().getFriendList(identity.id).subscribe((users: User[]) => {
-            return res.status(200).json({ users });
-        });
+        forkJoin({
+            friendRequests: UserOrm().getFriendRequest(identity.id),
+            myFriendRequest: UserOrm().getMyFriendRequest(identity.id)
+        }).subscribe((resRequest) => {
+            return res.status(200).json(resRequest);
+        })
     }
 
 }

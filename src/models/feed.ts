@@ -1,4 +1,5 @@
 import { Observable, Subscriber } from "rxjs";
+import { map } from "rxjs/operators";
 import { getNeo4jInstance } from "../app";
 import { Malotru } from "../orm/malotru";
 import { OrientationLink } from "../orm/models/link";
@@ -33,18 +34,18 @@ class FeedObject extends Malotru.malotruObject<Feed> {
 
     public readFeedByTarget(target: TargetRessource): Observable<Feed> {
         return new Observable((observer: Subscriber<Feed>) => {
-            this.searchFactory.searchNodeByLink(
-                target,
-                { label: this.label, linkLabel: FeedRelation.Feed }
-            ).subscribe((feed: Feed) => {
-                this.getPostByFeedId(feed.id).subscribe((posts: Post[]) => {
-                    observer.next({
-                        ...feed,
-                        posts
+            this.links[FeedRelation.Feed]
+                .listRatachedNodes(target.id)
+                .pipe(map((data) => data[0]))
+                .subscribe((feed: Feed) => {
+                    this.getPostByFeedId(feed.id).subscribe((posts: Post[]) => {
+                        observer.next({
+                            ...feed,
+                            posts
+                        });
+                        observer.complete();
                     });
-                    observer.complete();
                 });
-            });
         });
     }
 

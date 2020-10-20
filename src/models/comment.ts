@@ -55,15 +55,10 @@ class CommentObject extends Malotru.malotruObject<CommentRessource> {
     }
 
     public userIsOwnerOfComment(userId: number, commentId: number): Observable<boolean> {
-        return this.searchFactory
-            .checkIfLinkExist(
-                { id: userId, label: MalotruLabels.User },
-                { id: commentId, label: this.label },
-                CommentRelation.Publish
-            )
-            .pipe((map((res) => {
-                return res !== undefined;
-            })));
+        return this.links[CommentRelation.Publish].checkIfLinkExist(
+            userId,
+            { id: commentId, label: this.label }
+        );
     }
 
 }
